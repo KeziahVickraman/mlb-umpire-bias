@@ -35,14 +35,14 @@
 ###--------------------------------------------------------------------------###
 
 rm(list = ls())
-
+# ---- 0. Set Dependencies ----
 pacman::p_load(
   tidyverse, glue, scales, lubridate,
   baseballr,
   lmtest, sandwich,
   broom
 )
-
+# ---- 1. Collect & Import Data ----
 ###--------------------------------------------------------------------------###
 ###   SECTION 1: Load Statcast Data                                          ###
 ###   Pull batter-perspective data month by month                           ###
@@ -182,6 +182,8 @@ all_statcast %>% count(season, abs_era) %>% print()
 # Save raw — large file
 saveRDS(all_statcast, "statcast_2020_2026.rds")
 
+# ---- 2. Wrangle Data ----
+
 ###--------------------------------------------------------------------------###
 ###   SECTION 2: Define Objectively Correct Ball-Strike Call                 ###
 ###   Using pitch location vs personalised strike zone                       ###
@@ -220,13 +222,14 @@ message(glue("Overall error rate: {round(mean(called_pitches$incorrect_call, na.
 message(glue("Missed strikes:     {round(mean(called_pitches$missed_strike,  na.rm=TRUE)*100, 2)}%"))
 message(glue("Phantom strikes:    {round(mean(called_pitches$phantom_strike, na.rm=TRUE)*100, 2)}%"))
 
+## ---- 2.1 Star Player Classification ----
 ###--------------------------------------------------------------------------###
-###   SECTION 3: Star Classification                                         ###
-###   External WAR sources (Baseball Reference, FanGraphs) blocked          ###
-###   Proxy: top 25% of batters by called pitches seen per season           ###
-###   Defensible: regular starters face ~600-800 called pitches/full season ###
-###   Relative threshold per season accounts for 2020 shortened season      ###
-###   TODO: replace with WAR when API access restored                       ###
+###   SECTION 2.1: Star Classification                                       ###
+###   External WAR sources (Baseball Reference, FanGraphs) blocked           ###
+###   Proxy: top 25% of batters by called pitches seen per season            ###
+###   Defensible: regular starters face ~600-800 called pitches/full season  ###
+###   Relative threshold per season accounts for 2020 shortened season       ###
+###   TODO: replace with WAR when API access restored (check with Prof.)     ###
 ###--------------------------------------------------------------------------###
 
 star_proxy <-
@@ -248,10 +251,9 @@ star_proxy <-
 
 message("Star classification by season:")
 print(star_proxy %>% count(star, season))
+print(star_proxy %>% count(star, season), n = Inf)
 
-print(star_proxy %>% count(star, season), n = 21)
-
-
+## ---- 2.2 Umpire Errors by Player Status ----
 ###--------------------------------------------------------------------------###
 ###   SECTION 4: Merge + Error Rates by Star Status                         ###
 ###--------------------------------------------------------------------------###
@@ -293,8 +295,11 @@ error_summary <-
 message("Aggregated error rates (pre vs post):")
 print(error_summary)
 
+#---- 3. DiD Modelling ----
+## ---- 3.1 Manual DiD  ----
+
 ###--------------------------------------------------------------------------###
-###   SECTION 5: Manual DiD Estimate — (B-A) - (D-C)                       ###
+###   SECTION 3.1: Manual DiD Estimate — (B-A) - (D-C)                       ###
 ###--------------------------------------------------------------------------###
 
 A <- error_summary %>% filter(star == "Star",     abs_era == 0) %>% pull(error_rate)
@@ -318,10 +323,11 @@ cat(glue("DiD   = {round(did_estimate, 3)}\n"))
 cat(glue("Interpretation: {interpretation}\n"))
 cat("================================\n")
 
+## ---- 3.2 Formal DiD Modelling ----
 ###--------------------------------------------------------------------------###
-###   SECTION 6: Formal DiD Model                                            ###
+###   SECTION 3.2: Formal DiD Model                                          ###
 ###   incorrect_call ~ post * treated                                        ###
-###   post:treated = DiD estimate = causal effect of ABS on star bias       ###
+###   post:treated = DiD estimate = causal effect of ABS on star bias        ###
 ###--------------------------------------------------------------------------###
 
 did_data <-
@@ -382,8 +388,10 @@ cat("CI based on HC3 robust standard errors\n")
 cat("Post-period = April-May 2026 only — full season needed for significance\n")
 cat("================================\n")
 
+# ---- 4. Visualise  ----
+
 ###--------------------------------------------------------------------------###
-###   SECTION 7: Visualisations                                              ###
+###   SECTION 4: Visualisations                                              ###
 ###--------------------------------------------------------------------------###
 
 theme_mlb <- function() {
@@ -401,7 +409,7 @@ theme_mlb <- function() {
     )
 }
 
-# --- Fig 1: Parallel Trends Check (season-level) ---
+### --- Fig 1: Parallel Trends Check (season-level) ----
 # Shows pre-period trends for both stars and non-stars
 # Should move together pre-2026 — diverge post-ABS
 fig_parallel <-
@@ -436,7 +444,7 @@ fig_parallel <-
 
 fig_parallel
 
-# --- Fig 2: DiD Summary (aggregated pre vs post) ---
+### --- Fig 2: DiD Summary (aggregated pre vs post) ----
 fig_did <-
   error_summary %>%
   mutate(
@@ -466,6 +474,7 @@ print(fig_did)
 ggsave("fig_parallel_trends.png", fig_parallel, width = 10, height = 6, dpi = 300)
 ggsave("fig_did_summary.png",     fig_did,      width = 10, height = 6, dpi = 300)
 
+# ---- 5. Report  ----
 ###--------------------------------------------------------------------------###
 ###   SECTION 8: Summary & Next Steps                                        ###
 ###--------------------------------------------------------------------------###
@@ -489,5 +498,9 @@ cat("8. Consider KBO 2024 full ABS as additional natural experiment\n")
 cat("==============================\n")
 
 ###--------------------------------------------------------------------------###
+# ---- 6. Save RAM space into hardisk ----
 save.image("MLB_01_Umpire_Bias_Results.RData")
 message("Saved.")
+
+# ---- 7. Report Dependencies ----
+sessionInfo()
