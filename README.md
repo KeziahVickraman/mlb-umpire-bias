@@ -63,7 +63,7 @@ source("MLB_01_Umpire_Bias_Skeleton.R")
 
 Raw Statcast pitch-level data (2020–2026) is too large for GitHub (116MB).
 
-**Download:** [Google Drive link — add here](https://drive.google.com/file/d/1Py7C9L1Qkmwok-kxLjjNMih443lulJNu/view?usp=sharing)  
+**Download:** [Google Drive link — rds file link here](https://drive.google.com/file/d/1Py7C9L1Qkmwok-kxLjjNMih443lulJNu/view?usp=sharing)  
 **Load with:** `readRDS("statcast_2020_2026.rds")`
 
 | Source | Coverage | Method |
