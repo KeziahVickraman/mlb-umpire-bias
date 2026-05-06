@@ -255,7 +255,7 @@ print(star_proxy %>% count(star, season), n = Inf)
 
 ## ---- 2.2 Umpire Errors by Player Status ----
 ###--------------------------------------------------------------------------###
-###   SECTION 4: Merge + Error Rates by Star Status                         ###
+###   SECTION 2.2: Merge + Error Rates by Star Status                        ###
 ###--------------------------------------------------------------------------###
 
 called_pitches_star <-
